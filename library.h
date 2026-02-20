@@ -1,0 +1,6 @@
+#ifndef EDUSSCRAPPERLIBRARY_LIBRARY_H
+#define EDUSSCRAPPERLIBRARY_LIBRARY_H
+#include "Backend.h"
+void hello();
+
+#endif // EDUSSCRAPPERLIBRARY_LIBRARY_H
