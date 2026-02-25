@@ -112,6 +112,7 @@ QDate Subject::formatDate(QString unFormattedDate)
 }
 void Subject::pGrades()
 {
+    qDebug() << m_name;
     QListIterator<Grade> it(m_grades);
     while (it.hasNext())
     {

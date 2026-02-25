@@ -10,13 +10,20 @@
 #include "Backend.h"
 
 #include <QCoreApplication>
-#include <QString>
-#include <QObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QNetworkCookieJar>
+#include <QNetworkCookie>
+#include <QUrlQuery>
 #include <QList>
 #include <QUrl>
-#include <iostream>
+#include <QString>
+#include <QObject>
+#include <QDebug>
+#include <QRegularExpression>
+
+
 
 class Scrapper : public QObject
 {
@@ -42,6 +49,7 @@ public:
 
 private:
     QNetworkAccessManager* manager;
+    QNetworkCookieJar* cookieJar;
     QUrl mainUrl;
     QUrl gradesFilePageUrl;
     QString token;

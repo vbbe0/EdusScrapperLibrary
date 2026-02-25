@@ -3,17 +3,18 @@
 //
 
 #include "scrapper.h"
-#include <QObject>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QNetworkRequest>
-#include <QDebug>
-#include <QRegularExpression>
-#include <QUrlQuery>
 
-Scrapper::Scrapper(QUrl const edusUrl, QUrl const gradeUrl, QString user, QString password) : USERNAME(std::move(user)), PASSWORD(std::move(password))
+
+Scrapper::Scrapper(QUrl const edusUrl, QUrl const gradeUrl, QString user, QString password)
 {
+    USERNAME = user;
+    PASSWORD = password;
+
     manager = new QNetworkAccessManager(this);
+
+    cookieJar = new QNetworkCookieJar(this);
+
+    manager->setCookieJar(cookieJar);
 
     mainUrl = edusUrl;
     gradesFilePageUrl = gradeUrl;
@@ -36,6 +37,7 @@ void Scrapper::getToken(QString reply)
     else
     {
         qDebug() << "Can't find CSRF token";
+        qDebug() << reply;
         token = nullptr;
     }
 }
@@ -71,50 +73,59 @@ Scrapper::pageTypes Scrapper::handleReply(QNetworkReply* unFormattedReply)
 
     re = QRegularExpression("<title>(.*?)</title>");
     match = re.match(reply);
-
     return pageTable.value(match.captured());
 }
 void Scrapper::login(QString const& username, QString const& password, const QNetworkReply* reply)
 {
     QUrlQuery postData;
+    postData.addQueryItem("csrfmiddlewaretoken", token);
     postData.addQueryItem("username", username);
     postData.addQueryItem("password", password);
-    postData.addQueryItem("csrfmiddlewaretoken", token);
 
     QByteArray const data = postData.toString(QUrl::FullyEncoded).toUtf8();
 
     QNetworkRequest loginRequest(QUrl("https://app.edus.ro/cont/login/"));
     loginRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
     loginRequest.setHeader(QNetworkRequest::UserAgentHeader, "Mozilla/5.0");
+    loginRequest.setRawHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
     loginRequest.setRawHeader("Referer", reply->url().toString().toUtf8());
+    loginRequest.setRawHeader("Origin", "https://app.edus.ro");
 
     QNetworkReply* loginReply = manager->post(loginRequest, data);
 
     QEventLoop loop;
     connect (loginReply, &QNetworkReply::finished, &loop ,  &QEventLoop::quit);
     loop.exec();
-        QString errorString = loginReply->readAll();
 
-        QRegularExpression const re("<div id=\"summary\">(.*?)</div>", QRegularExpression::DotMatchesEverythingOption);
-        QRegularExpressionMatch const match = re.match(errorString);
+    QString errorString = loginReply->readAll();
 
-        uint16_t errorCode = loginReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        switch (errorCode)
-        {
-        case 200:
-            qDebug() << "Login executed succefully";
-            break;
-        case 403:
-            errorString.clear();
-            errorString = match.captured(1);
-            errorString.remove(QRegularExpression("<[^>]*>"));
-            errorString = errorString.simplified();
-            qDebug() << "Login failed with error" << errorString;
-            break;
-        default:
-            qDebug() << "Unexpected error";
-            break;
-        };
+    QRegularExpression const re("<div id=\"summary\">(.*?)</div>", QRegularExpression::DotMatchesEverythingOption);
+    QRegularExpressionMatch const match = re.match(errorString);
+
+    uint16_t errorCode = loginReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    switch (errorCode)
+    {
+    case 200:
+        qDebug() << "Login executed succefully";
+        break;
+    case 401:
+        errorString.clear();
+        errorString = match.captured(1);
+        errorString.remove(QRegularExpression("<[^>]*>"));
+        errorString = errorString.simplified();
+        qDebug() << "Login failed with error" << errorString;
+        break;
+    case 403:
+        errorString.clear();
+        errorString = match.captured(1);
+        errorString.remove(QRegularExpression("<[^>]*>"));
+        errorString = errorString.simplified();
+        qDebug() << "Login forbidden with error" << errorString;
+        break;
+    default:
+        qDebug() << "Unexpected error";
+        break;
+    };
 }
 QStringList Scrapper::gradeSeparator(QString const& unFormattedGrade)
 {
@@ -213,20 +224,18 @@ void Scrapper::getGrades()
 }
 void Scrapper::pGrades(QMap<QString, Subject> &subjects)
 {
-    QMapIterator<QString,QStringList> gradesTableIt(gradesTable);
+    QMapIterator gradesTableIt(gradesTable);
 
     qDebug() << gradesTable["Matematica"];
 
     while (gradesTableIt.hasNext())
     {
-        qDebug() << "ok0";
         gradesTableIt.next();
-
+        //qDebug() << "Subject" << gradesTableIt.key() << "Grades:" << gradesTableIt.value().join(',');
         QString const subjectName = gradesTableIt.key();
 
         if (!subjects.contains(subjectName))
         {
-            qDebug() << "ok1";
             subjects.insert(subjectName, Subject(subjectName));
         }
 
@@ -247,7 +256,7 @@ void Scrapper::pGrades(QMap<QString, Subject> &subjects)
             if (!currentSubject.hasGrade(value, date)) {
                 currentSubject.addGrade(value, date);
             }
-            //qDebug() << "Subject" << gradesTableIt.key() << "Grades:" << gradesTableIt.value().join(',');
+
         }
     }
 }
@@ -280,6 +289,5 @@ void Scrapper::init()
     }
 
     getGrades();
-
 }
 
