@@ -6,12 +6,16 @@
 #define EDUSSCRAPPER_BACKEND_H
 
 #endif //EDUSSCRAPPER_BACKEND_H
+#include <library.h>
+
 #include <QString>
 #include <QDate>
 #include <stdexcept>
+#include <QHash>
+#include <utility>
 
 uint32_t romanToArabic(QString roman);
-class Grade
+class MY_EXPORT Grade
 {
 public:
     int value;
@@ -19,7 +23,7 @@ public:
     Grade(uint16_t v, QDate d);
     QString getGrade();
 };
-class Subject
+class MY_EXPORT Subject
 {
 public:
     Subject() = default;
@@ -38,9 +42,7 @@ private:
     QDate formatDate(QString unFormattedDate);
 
 };
-
-
-class SubjectManager
+class MY_EXPORT SubjectManager
 {
 public:
     int addSubject(QString subjectName);

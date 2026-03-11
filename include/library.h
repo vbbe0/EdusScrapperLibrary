@@ -1,0 +1,12 @@
+#ifndef EDUSSCRAPPERLIBRARY_LIBRARY_H
+#define EDUSSCRAPPERLIBRARY_LIBRARY_H
+
+#include <QtCore/qglobal.h>
+
+#if defined(MYLIBRARY_LIBRARY)
+#  define MY_EXPORT Q_DECL_EXPORT
+#else
+#  define MY_EXPORT Q_DECL_IMPORT
+#endif
+
+#endif // EDUSSCRAPPERLIBRARY_LIBRARY_H

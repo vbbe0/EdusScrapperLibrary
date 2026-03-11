@@ -2,7 +2,7 @@
 // Created by vbbe on 2/8/2026.
 //
 
-#include "scrapper.h"
+#include <scrapper.h>
 
 PersistentCookieJar::PersistentCookieJar(QString cookiePath)
 {

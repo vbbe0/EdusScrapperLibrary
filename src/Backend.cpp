@@ -2,13 +2,8 @@
 // Created by vbbe on 1/23/2026.
 //
 
-#include "Backend.h"
-#include <QString>
-#include <QHash>
-#include<QDate>
-#include<iostream>
-#include<stdexcept>
-#include <utility>
+#include <Backend.h>
+
 
 QString Class;
 uint8_t Value;

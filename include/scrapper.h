@@ -7,7 +7,7 @@
 
 #endif //EDUSSCRAPPERLIBRARY_SCRAPPER_H
 
-#include "Backend.h"
+#include <Backend.h>
 
 #include <QCoreApplication>
 #include <QNetworkAccessManager>
@@ -28,7 +28,7 @@
 #include <QDir>
 
 
-class PersistentCookieJar : public QNetworkCookieJar
+class MY_EXPORT PersistentCookieJar : public QNetworkCookieJar
 {
     Q_OBJECT
 public:
@@ -40,8 +40,7 @@ public:
 private:
     QString m_cookiePath;
 };
-
-class Scrapper : public QObject
+class MY_EXPORT Scrapper : public QObject
 {
     Q_OBJECT
 public:

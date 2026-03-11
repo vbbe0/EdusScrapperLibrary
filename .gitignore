@@ -1,3 +1,5 @@
 /Tests/
 /.idea/
-/Packaging.bat/
+/Packaging.bat
+/.gitignore
+/util/
