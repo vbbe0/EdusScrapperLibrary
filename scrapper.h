@@ -22,8 +22,24 @@
 #include <QObject>
 #include <QDebug>
 #include <QRegularExpression>
+#include <QStandardPaths>
+#include <QFile>
+#include <QFileInfo>
+#include <QDir>
 
 
+class PersistentCookieJar : public QNetworkCookieJar
+{
+    Q_OBJECT
+public:
+    PersistentCookieJar(QString cookiePath);
+    ~PersistentCookieJar();
+    bool saveToDisk();
+    bool loadFromDisk();
+    void setSavePath(QString cookiePath);
+private:
+    QString m_cookiePath;
+};
 
 class Scrapper : public QObject
 {
@@ -39,8 +55,8 @@ public:
     Scrapper(QUrl const edusUrl, QUrl const gradeUrl, QString user, QString password);
     void init();
     pageTypes handleReply(QNetworkReply* unFormattedReply);
-    void login(QString const& username, QString const& password, const QNetworkReply* reply);
-    void getToken(QString reply);
+    void login(QString const& username, QString const& password, QNetworkReply* reply);
+    void getToken(const QString &reply);
     void getGrades();
     void pGrades(QMap<QString,Subject> &subjects);
     QMap<QString, QStringList> grades();
@@ -49,7 +65,7 @@ public:
 
 private:
     QNetworkAccessManager* manager;
-    QNetworkCookieJar* cookieJar;
+    PersistentCookieJar* cookieJar;
     QUrl mainUrl;
     QUrl gradesFilePageUrl;
     QString token;

@@ -71,7 +71,18 @@ void Subject::addGrade(uint16_t value, QString unFormattedDate)
 {
     m_grades.append(Grade(value,formatDate(unFormattedDate)));
 }
+float Subject::getAverage()
+{
+    int sum = 0;
+    int n = 0;
+    for (const Grade& grade : m_grades)
+    {
+        sum += grade.value;
+        n++;
+    }
 
+    return sum / n;
+}
 QDate Subject::formatDate(QString unFormattedDate)
 {
     unFormattedDate = unFormattedDate.trimmed();
@@ -128,18 +139,13 @@ bool Subject::hasGrade(int value, QDate date) {
     }
     return false; // Not found
 }
-/*
-
-    void Grade::setValue(QString unFormattedStringValue)
+int SubjectManager::addSubject(const QString subjectName)
+{
+    if (subjectMap.contains(subjectName))
     {
-        uint8_t unFormattedValue = unFormattedStringValue.toInt();
-        if (unFormattedValue <= 10 && unFormattedValue >= 1)
-        {
-           Value = unFormattedValue;
-        }
-        else
-        {
-            throw std::out_of_range("The value isn't in the normal range: " + std::to_string(unFormattedValue));
-        }
+        return 101;
     }
-    */
+
+    subjectMap.insert(subjectName, Subject(subjectName));
+    return 0;
+}

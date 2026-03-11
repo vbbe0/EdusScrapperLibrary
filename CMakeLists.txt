@@ -9,7 +9,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core Network)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_library(EdusScrapperLibrary SHARED library.cpp
+add_library(EdusScrapperLibrary SHARED
         Backend.h
         library.h
         Backend.cpp

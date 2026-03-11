@@ -4,15 +4,98 @@
 
 #include "scrapper.h"
 
+PersistentCookieJar::PersistentCookieJar(QString cookiePath)
+{
+    setSavePath(cookiePath);
+    loadFromDisk();
+}
+PersistentCookieJar::~PersistentCookieJar()
+{
+    saveToDisk();
+}
+
+bool PersistentCookieJar::saveToDisk()
+{
+    QFile cookieFile(m_cookiePath);
+    cookieFile.open(QIODevice::WriteOnly);
+
+    QDataStream out(&cookieFile);
+
+    QList<QNetworkCookie> unprocessedCookies = allCookies();
+    QList<QNetworkCookie> cookies;
+
+    for (QNetworkCookie &c : unprocessedCookies)
+    {
+        bool isCSRF = (c.name() == "csrftoken" || c.name() == "XCSRF-TOKEN");
+
+        if (!c.isSessionCookie() && c.expirationDate().isValid() && c.expirationDate() > QDateTime::currentDateTime()
+            && !isCSRF)
+        {
+            cookies.append(c);
+        }
+    }
+
+    out << (int)cookies.count();
+    for (QNetworkCookie &c : cookies)
+    {
+        out << c.toRawForm();
+    }
+    cookieFile.close();
+    return true;
+}
+bool PersistentCookieJar::loadFromDisk()
+{
+    QList<QNetworkCookie> cookies;
+
+    QFile cookieFile(m_cookiePath);
+
+    if (!cookieFile.exists() || !cookieFile.open(QIODevice::ReadOnly))
+    {
+        return false;
+    }
+
+    QDataStream in(&cookieFile);
+    int count = 0;
+    in >> count;
+
+    for (int i = 1;i<=count;i++)
+    {
+        QByteArray c;
+        in >> c;
+        qDebug() << c;
+        cookies+=QNetworkCookie::parseCookies(c);
+    }
+    setAllCookies(cookies);
+    qDebug() << "Loaded cookies succesfully";
+    return true;
+}
+
+void PersistentCookieJar::setSavePath(QString cookiePath)
+{
+   cookiePath = QDir::toNativeSeparators(cookiePath);
+
+    m_cookiePath = cookiePath;
+}
 
 Scrapper::Scrapper(QUrl const edusUrl, QUrl const gradeUrl, QString user, QString password)
 {
+    QString tempCookiePath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    tempCookiePath = QDir::toNativeSeparators(tempCookiePath);
+
+    QDir cookieDir(tempCookiePath);
+    if (!cookieDir.exists())
+    {
+        cookieDir.mkpath(".");
+    }
+
+    QString cookiePath = QDir::toNativeSeparators(tempCookiePath + "/cookies.dat");
+
     USERNAME = user;
     PASSWORD = password;
 
     manager = new QNetworkAccessManager(this);
 
-    cookieJar = new QNetworkCookieJar(this);
+    cookieJar = new PersistentCookieJar(cookiePath);
 
     manager->setCookieJar(cookieJar);
 
@@ -24,7 +107,7 @@ Scrapper::Scrapper(QUrl const edusUrl, QUrl const gradeUrl, QString user, QStrin
     pageTable.insert("Situatie scolara - Edus", gradesPage);
     pageTable.insert("Fisa progres - Edus", gradesFilePage);
 }
-void Scrapper::getToken(QString reply)
+void Scrapper::getToken(const QString &reply)
 {
     QRegularExpression re("name=\"csrfmiddlewaretoken\" value=\"([^\"]+)\"");
     QRegularExpressionMatch match = re.match(reply);
@@ -69,14 +152,14 @@ Scrapper::pageTypes Scrapper::handleReply(QNetworkReply* unFormattedReply)
 
 //==============================================================================================================
 
-    getToken(reply);
-
     re = QRegularExpression("<title>(.*?)</title>");
     match = re.match(reply);
-    return pageTable.value(match.captured());
+    return pageTable.value(match.captured(1));
 }
-void Scrapper::login(QString const& username, QString const& password, const QNetworkReply* reply)
+void Scrapper::login(QString const& username, QString const& password, QNetworkReply* reply)
 {
+    getToken(reply->readAll());
+
     QUrlQuery postData;
     postData.addQueryItem("csrfmiddlewaretoken", token);
     postData.addQueryItem("username", username);
@@ -96,6 +179,8 @@ void Scrapper::login(QString const& username, QString const& password, const QNe
     QEventLoop loop;
     connect (loginReply, &QNetworkReply::finished, &loop ,  &QEventLoop::quit);
     loop.exec();
+
+    cookieJar->saveToDisk();
 
     QString errorString = loginReply->readAll();
 
@@ -245,7 +330,6 @@ void Scrapper::pGrades(QMap<QString, Subject> &subjects)
 
         while (gradesListIt.hasNext())
         {
-            qDebug() << "ok2";
             QString data(gradesListIt.next());
 
             QStringList dataList = gradeSeparator(data);
@@ -283,9 +367,13 @@ void Scrapper::init()
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
 
-    if (handleReply(reply) == loginPage)
+    if  (handleReply(reply) == loginPage)
     {
         login(USERNAME, PASSWORD, reply);
+    }
+    else
+    {
+        qDebug() << "Used already existing cookie";
     }
 
     getGrades();

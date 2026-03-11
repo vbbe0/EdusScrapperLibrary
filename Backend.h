@@ -28,6 +28,7 @@ public:
     void addGrade(uint16_t value, QDate date);
     void addGrade(uint16_t value, QString date);
     bool hasGrade(int value, QDate date);
+    float getAverage();
     void pGrades();
 private:
     QString m_name;
@@ -36,4 +37,13 @@ private:
     QStringList gradeSeparator(QString const& unFormattedGrade);
     QDate formatDate(QString unFormattedDate);
 
+};
+
+
+class SubjectManager
+{
+public:
+    int addSubject(QString subjectName);
+private:
+    QMap<QString, Subject> subjectMap;
 };
