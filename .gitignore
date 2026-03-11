@@ -1,5 +1,8 @@
-/Tests/
+/tests_src/
+/tests_exe/
+/bin/
 /.idea/
 /Packaging.bat
 /.gitignore
 /util/
+/ExportedPackage/
